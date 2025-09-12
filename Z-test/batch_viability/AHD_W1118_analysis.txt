@@ -1,0 +1,141 @@
+Model summary:
+Generalized linear mixed model fit by maximum likelihood (Adaptive
+  Gauss-Hermite Quadrature, nAGQ = 25) [glmerMod]
+ Family: binomial  ( logit )
+Formula: Drive ~ Experiment + (1 | Group)
+   Data: dat
+
+     AIC      BIC   logLik deviance df.resid 
+   623.9    638.4   -308.9    617.9      946 
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-3.6903 -0.3646 -0.2509  0.1791  4.4567 
+
+Random effects:
+ Groups Name        Variance Std.Dev.
+ Group  (Intercept) 0.7806   0.8835  
+Number of obs: 949, groups:  Group, 42
+
+Fixed effects:
+                Estimate Std. Error z value Pr(>|z|)    
+(Intercept)      -2.1178     0.2249  -9.418   <2e-16 ***
+ExperimentW1118   4.9759     0.4605  10.806   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Correlation of Fixed Effects:
+            (Intr)
+ExprmnW1118 -0.561
+
+
+Joint test to see if there's any difference between any pairs of experiments.
+ model term df1 df2 F.ratio   Chisq p.value
+ Experiment   1 Inf 116.763 116.763  <.0001
+
+
+
+Calculate expected value for each experiment:
+ Experiment  prob     SE  df asymp.LCL asymp.UCL
+ AHD        0.107 0.0216 Inf    0.0719     0.157
+ W1118      0.946 0.0196 Inf    0.8917     0.974
+
+Confidence level used: 0.95 
+Intervals are back-transformed from the logit scale 
+
+
+Compare expected values for each experiment to one another as odds ratios.
+$emmeans
+ Experiment  prob     SE  df asymp.LCL asymp.UCL
+ AHD        0.107 0.0216 Inf    0.0719     0.157
+ W1118      0.946 0.0196 Inf    0.8917     0.974
+
+Confidence level used: 0.95 
+Intervals are back-transformed from the logit scale 
+
+$contrasts
+ contrast    odds.ratio      SE  df null z.ratio p.value
+ AHD / W1118     0.0069 0.00318 Inf    1 -10.806  <.0001
+
+Tests are performed on the log odds ratio scale 
+
+
+
+Show differences as a difference in proportions
+$emmeans
+ Experiment  prob     SE  df asymp.LCL asymp.UCL
+ AHD        0.107 0.0216 Inf    0.0651     0.150
+ W1118      0.946 0.0196 Inf    0.9072     0.984
+
+Confidence level used: 0.95 
+
+$contrasts
+ contrast    estimate     SE  df z.ratio p.value
+ AHD - W1118   -0.838 0.0304 Inf -27.578  <.0001
+
+
+
+
+Compare each experiment to a null expectation value (0.5).
+ Experiment emmean    SE  df z.ratio p.value
+ AHD         -2.12 0.225 Inf  -9.418  <.0001
+ W1118        2.86 0.383 Inf   7.468  <.0001
+
+Results are given on the logit (not the response) scale. 
+
+
+Model confidence intervals:
+                     2.5 %    97.5 %
+.sig01           0.5321824  1.375744
+(Intercept)     -2.6121929 -1.693665
+ExperimentW1118  4.1561544  6.028684
+
+
+Model coefficients:
+$Group
+   (Intercept) ExperimentW1118
+0   -1.4983602        4.975897
+1   -1.0464134        4.975897
+2   -1.9238131        4.975897
+3   -2.0116079        4.975897
+4   -1.9568369        4.975897
+5   -1.2761699        4.975897
+6   -2.1530445        4.975897
+7   -2.0941718        4.975897
+8   -2.3540022        4.975897
+9   -1.6255502        4.975897
+10  -2.1195815        4.975897
+11  -2.3540022        4.975897
+12  -2.3985787        4.975897
+13  -1.3883661        4.975897
+14  -1.5722243        4.975897
+15  -1.2261057        4.975897
+16  -2.1011996        4.975897
+17  -0.6627564        4.975897
+18  -1.3515973        4.975897
+19  -1.4990179        4.975897
+20  -3.7002976        4.975897
+21  -1.5684875        4.975897
+22  -1.6061877        4.975897
+23  -1.3256011        4.975897
+24  -3.2203565        4.975897
+25  -1.9611916        4.975897
+26  -2.3934098        4.975897
+27  -3.0804031        4.975897
+28  -2.1316308        4.975897
+30  -2.6714311        4.975897
+31  -2.8061174        4.975897
+32  -2.0116079        4.975897
+33  -1.5722243        4.975897
+34  -2.8061174        4.975897
+35  -1.1467163        4.975897
+36  -3.1363661        4.975897
+37  -3.0438685        4.975897
+38  -2.5351228        4.975897
+39  -2.6714311        4.975897
+40  -3.0227640        4.975897
+41  -2.5710103        4.975897
+42  -2.3800548        4.975897
+
+attr(,"class")
+[1] "coef.mer"
