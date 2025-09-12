@@ -1,0 +1,47 @@
+
+==============================
+Experiment: Bstl-Female 
+==============================
+
+Model summary:
+Generalized linear mixed model fit by maximum
+  likelihood (Adaptive Gauss-Hermite Quadrature,
+  nAGQ = 25) [glmerMod]
+ Family: binomial  ( logit )
+Formula: drive ~ 1 + (1 | group)
+   Data: dataframe
+
+     AIC      BIC   logLik deviance df.resid 
+   528.8    538.0   -262.4    524.8      743 
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-2.8052  0.3565  0.3565  0.3565  0.3565 
+
+Random effects:
+ Groups Name        Variance Std.Dev.
+ group  (Intercept) 0        0       
+Number of obs: 745, groups:  group, 9
+
+Fixed effects:
+            Estimate Std. Error z value Pr(>|z|)    
+(Intercept)   2.0629     0.1158   17.81   <2e-16 ***
+---
+Signif. codes:  
+0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+optimizer (Nelder_Mead) convergence code: 0 (OK)
+boundary (singular) fit: see help('isSingular')
+
+
+Calculate expected value:
+ 1        prob     SE  df asymp.LCL asymp.UCL
+ overall 0.887 0.0116 Inf     0.862     0.908
+
+Confidence level used: 0.95 
+Intervals are back-transformed from the logit scale 
+
+Compare to null expectation (p = 0.5 ):
+ 1       emmean    SE  df z.ratio p.value
+ overall   2.06 0.116 Inf  17.809  <.0001
+
+Results are given on the logit (not the response) scale. 
