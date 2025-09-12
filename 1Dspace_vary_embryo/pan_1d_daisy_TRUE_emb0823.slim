@@ -1,0 +1,1550 @@
+// Author: Sam Champer and Isabel Kim.
+// Created in association with Jackson Champer and the Messer lab.
+
+// A framework for simulating many different gene drives
+// with varying parameters, intended to be configured by
+// altering the heading below, or by dynamically varying
+// values in the header using an associated Python file.
+
+// These gene drives are located on the same chromosome as their target sites.
+// This file may be used to run the female fertility homing drive, both-sex fertility
+// homing drive, or both-sex lethal homing drive.
+
+// The following header to be replaced via python,
+// such that these values can be varied across multiple runs of slim.
+
+initialize() {
+	
+	// Drive parameters:
+	defineConstant("TWO_DIMENSIONAL", F); // If F, simulation runs in 1-D
+	defineConstant("HOMING_DRIVE", T); // Set T for female fertile and both-sex fertile or lethal homing drive
+	defineConstant("RECESSIVE_FEMALE_STERILE_SUPPRESSION_DRIVE", T);
+	 // For both-sex fertile drive, set this and the one below to T
+	defineConstant("RECESSIVE_MALE_STERILE_SUPPRESSION_DRIVE", F);
+	defineConstant("RECESSIVE_BOTH_SEX_LETHAL_SUPPRESSION_DRIVE", F);
+	defineCfgParam("AVERAGE_DISTANCE",0.05);		
+	defineCfgParam("SPEED", AVERAGE_DISTANCE*sqrt(2/PI));	
+
+	
+	defineCfgParam("GLOBAL_SATURATION_FACTOR", 2);
+	defineCfgParam("GERMLINE_EFFICIENCY", 1.00);
+	defineCfgParam("EMBRYO_RESISTANCE_RATE", 1.0);
+	defineCfgParam("HOMING_PHASE_CUT_RATE",  GERMLINE_EFFICIENCY/(1-(1-GERMLINE_EFFICIENCY)/2));
+	defineCfgParam("GERMLINE_RESISTANCE_RATE",  (1-GERMLINE_EFFICIENCY)/2);
+			  //defineCfgParam("EMBRYO_RESISTANCE_RATE", 0.9);
+	defineConstant("NUM_GRNAS", 1);
+	        // General drive parameters:
+       //daisy——multigrnas
+        defineCfgParam("NUM_GRNAS1", 1);
+        defineCfgParam("NUM_GRNAS2", 1);//hsdygu4
+	if (NUM_GRNAS == 1)
+   	defineConstant("GRNA_ACTIVITY_STEP", 0);
+    else
+        defineConstant("GRNA_ACTIVITY_STEP", (2 * GRNA_ACTIVITY_VARIATION)  / (NUM_GRNAS));   
+   	
+   
+	defineConstant("R12_OCCURRENCE_RATE", 0.000);
+   defineConstant("R13_OCCURRENCE_RATE", 0.000);
+	defineCfgParam("HET_MOTHER_CAS_INHERITANCE", 1.83);
+	
+	
+	// Ecology parameters:
+	defineCfgParam("GROWTH_AT_ZERO_DENSITY", 6.0);
+	defineConstant("INBREEDING_AVOIDANCE_FACTOR", 0.0); // If negative, this is a % increase. If positive, this is a % decrease//
+	defineConstant("INBREEDING_FECUNDITY_PENALTY", 0.0); // Ranges from 0 - 1. Always a % decrease
+	defineConstant("REPRISING_BOUNDARIES", T); // If F, toroidal boundaries are used
+	
+	// Release specifics:
+	defineConstant("CHANGE_GENOTYPE_DROP",F);
+	defineConstant("HETEROZYGOUS_DROP", F);
+	defineCfgParam("DROP_RADIUS", 0.2);
+	defineConstant("NO_DROP", F);
+	defineConstant("CIRCLE_DROP", F);
+	defineConstant("LEFT_EDGE_DROP", F);
+	defineConstant("UNIFORM_DROP", T);
+	defineConstant("CORNER_DROP",F);
+	defineConstant("WT_START",F);
+	defineConstant("BAR", 0.50);
+	defineConstant("MAX_OFFSPRING", 50);
+	
+	// 2-D parameters:
+		//if (TWO_DIMENSIONAL) {
+		//defineCfgParam("CAPACITY", 1000);
+		//defineConstant("DENSITY_INTERACTION_DISTANCE", 0.03);
+		//defineCfgParam("DROP_SIZE", 0.1);
+		//defineConstant("NUMBER_OF_CELLS", 64); //cells to compute gc
+		//defineConstant("NUMBER_OF_GRIDS", 400); //grids to count empty zones
+		//defineConstant("NUMBER_OF_POINTS_FOR_NNI",900); //points to compute nearest neighbor index
+		//defineConstant("EXPECTED_ADULT_COMPETITION", CAPACITY * PI * DENSITY_INTERACTION_DISTANCE^2);
+	//1D parameters
+	//} else {
+		defineConstant("CAPACITY", 10000);
+		defineConstant("DENSITY_INTERACTION_DISTANCE", 0.002);//影响种群低竞争下的生长！
+		defineCfgParam("DROP_SIZE", 1.0);
+		//defineConstant("SPEED", AVERAGE_DISTANCE*sqrt(PI/2));
+		defineConstant("NUMBER_OF_CELLS", 40);
+		defineCfgParam("AVERAGE_DISTANCE",0.05);
+		defineConstant("EQUILIBRIUM_BIN_POPULATION", 0.5*CAPACITY/20);
+		defineConstant("EXPECTED_ADULT_COMPETITION", CAPACITY *DENSITY_INTERACTION_DISTANCE);
+	//}
+
+
+
+	
+	
+	// */    // End header.
+	
+	// Below are defaults that will not change:
+	defineConstant("BASELINE_HOMING_SUCCESS_RATE", 1.0);
+	defineConstant("EQUILIBRIUM_WT_ALLELE_THRESHOLD", 0.8*2*CAPACITY);
+	defineConstant("FEMALE_SPEED", SPEED);
+	defineConstant("GRNA_SATURATION_SIMULATED", F);
+	defineConstant("HOMING_EDGE_EFFECT", 0.055);
+///////////////////////////////////////////////////////////
+        // Resistance phase parameters:
+        defineCfgParam("NUM_CUT_PHASES", 1);
+        defineCfgParam("GERMLINE_RESISTANCE_CUT_RATE_F", 0.0);
+        defineCfgParam("GERMLINE_RESISTANCE_CUT_RATE_M", 0.0);
+        defineCfgParam("LATE_GERMLINE_RESISTANCE_RATE", 0.5);
+	     defineCfgParam("SOMATIC_FITNESS_MUTLIPLIER_F", 0.9);
+	     defineCfgParam("SOMATIC_FITNESS_MUTLIPLIER_M", 1.00);
+	  
+		  //Drive_Related_Parameters
+		  defineConstant("MATING_DISTANCE", SPEED);	 
+	     defineConstant("MALE_ONLY_PROMOTER", F);
+		  defineCfgParam("GRNA_ACTIVITY_VARIATION", 0.0);
+		  defineCfgParam("DRIVE_CONVERSION", 0.9);
+   	  defineCfgParam("HOMING_PHASE_CUT_RATE",  DRIVE_CONVERSION);	
+		  defineCfgParam("HOMING_PHASE_CUT_RATE_F", 0);
+   	  defineCfgParam("HOMING_PHASE_CUT_RATE_M", 0);
+	
+		  
+	 //Fitness_Value
+	//chromosome 1:
+	   defineCfgParam("D1D1_FITNESS_VALUE",0.98);
+	   defineCfgParam("D1X_FITNESS_VALUE",sqrt(D1D1_FITNESS_VALUE)); 
+   //chromosome 2:
+   	 defineCfgParam("D2D2_FITNESS_VALUE",0.98);
+	    defineCfgParam("D2X_FITNESS_VALUE",sqrt(D2D2_FITNESS_VALUE)); 
+   //chromosome 3:
+       defineCfgParam("D3D3_FITNESS_VALUE", 1.00);
+       defineCfgParam("D3X_FITNESS_VALUE",sqrt(D3D3_FITNESS_VALUE ));
+  		// print("D3X_FITNESS_VALUE"+sqrt(D3D3_FITNESS_VALUE ));
+// Drive types/characteristics:
+	     defineConstant("HAPLOSUFFICIENT", F);
+		  defineConstant("MALE_ONLY_DROP", F);
+	     defineConstant("FEMALE_ONLY_DROP", F);
+        defineCfgParam("HOMING_DRIVE", T);
+        defineCfgParam("HAPLOLETHAL_DRIVE", F);
+        defineCfgParam("RECESSIVE_LETHAL_DRIVE", F);
+        defineCfgParam("GENE_DISRUPTION_DRIVE", F);
+        defineCfgParam("RECESSIVE_FEMALE_STERILE_SUPPRESSION_DRIVE", T);
+        defineCfgParam("HAPLOLETHAL_SUPPRESSION_DRIVE", F);
+        defineCfgParam("DIRECT_DAISY_DRIVE", F);   //NEW ADDED TO SEE IF GRNA3 AND CAS9 ARE TOGETHER
+	
+	
+	// For mortality rate as a function of age:
+	// Some females are allowed to survive two generations:
+	defineConstant("RATE_FEMALES_SURVIVE", 0.0);
+	
+	// This simulation will use a non-Wright Fisher model.
+	initializeSLiMModelType("nonWF");
+	
+	// This simulation will take place across continuous space.
+	// The model tracks pedigrees in order to implement inbreeding avoidance.
+	if (TWO_DIMENSIONAL) {
+		if (REPRISING_BOUNDARIES)
+			initializeSLiMOptions(keepPedigrees = T, dimensionality = "xy");
+		else
+			initializeSLiMOptions(keepPedigrees=T, dimensionality="xy", periodicity="xy");
+		
+		// Mate searching:
+		initializeInteractionType(1, "xy", reciprocal=T, maxDistance=MATING_DISTANCE);
+		// Adult competition:
+		initializeInteractionType(2, "xy", reciprocal=T, maxDistance=DENSITY_INTERACTION_DISTANCE);
+	}
+	else {
+		if (REPRISING_BOUNDARIES)
+			initializeSLiMOptions(keepPedigrees = T, dimensionality = "x"); //for 1-D
+		else
+			initializeSLiMOptions(keepPedigrees=T, dimensionality="x", periodicity="x");
+		
+		initializeInteractionType(1, "x", reciprocal=T, maxDistance=MATING_DISTANCE);
+		initializeInteractionType(2, "x", reciprocal=T, maxDistance=DENSITY_INTERACTION_DISTANCE);
+	}
+	
+//3 wt locus on 3 chromosomes
+	 wt1 = initializeMutationType("m1", 0.5, "f", 0.0);
+    wt2 = initializeMutationType("m2", 0.5, "f", 0.0);
+    wt3 = initializeMutationType("m3", 0.5, "f", 0.0);
+    
+//3 drive elements
+    dr1 = initializeMutationType("m4", 0.5, "f", 0.0);//grna1
+    dr2 = initializeMutationType("m5", 0.5, "f", 0.0);//cas9
+    dr3 = initializeMutationType("m6", 0.5, "f", 0.0);//grna2
+    
+//resistance alleles
+    r12 =  initializeMutationType("m7", 0.5, "f", 0.0);//r1 occurs on chromosome 2
+    r22 = initializeMutationType("m8", 0.5, "f", 0.0);//r2 occurs on chromosome 2
+    r13 = initializeMutationType("m14", 0.5, "f", 0.0);//r1 occurs on chromosome 3
+    r23 = initializeMutationType("m9", 0.5, "f", 0.0);//r2 occurs on chromosome 3
+    
+//cut and gap
+    cut2 = initializeMutationType("m10", 0.5, "f", 0.0);
+    cut3 = initializeMutationType("m11", 0.5, "f", 0.0);
+//
+    gap2 =  initializeMutationType("m12", 0.5, "f", 0.0);
+	 gap3 =  initializeMutationType("m13", 0.5, "f", 0.0);
+	
+//drive_variations = c(wt, dr, r1, r2, cut, gap);
+
+	 drive_variations = c(wt1, dr1,wt2, dr2, r12, r22, cut2, gap2,wt3, dr3, r13, r23, cut3, gap3); 
+    initializeGenomicElementType("g1", drive_variations, c(1,1,1,1,1,1,1,1,1,1,1,1,1,1));
+
+// Element is NUM_GRNAS long, each spot on the element representing a GRNA target location.	    
+    initializeGenomicElement(g1, 0, NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4 );//m4
+         
+// These mutations overwrite one another.
+    drive_variations.mutationStackPolicy = "l";
+    drive_variations.mutationStackGroup = 1;
+    
+	// No mutation in this model.
+	rates = c(0,         0.5,           0,            0.5,             0);
+   ends = c(NUM_GRNAS+1, NUM_GRNAS+2, NUM_GRNAS1+NUM_GRNAS +3, NUM_GRNAS1+NUM_GRNAS +4,NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+6);
+   initializeRecombinationRate(rates, ends);
+	initializeMutationRate(0.0);	
+	// Simulate sexual reproduction: A for autosome.
+	initializeSex("A");
+	
+}
+
+//// A HELPER FUNCTION FOR SETTING CONSTANTS THAT MIGHT BE CONFIGURED VIA COMMAND LINE.
+function (void) defineCfgParam(string$ name, lifs value) {//定义可变参数
+	if (!exists(name))
+		defineConstant(name, value);
+}
+//// FUNCTION FOR EVALUATING POPULATION SUPPRESSION WITH RECESSIVE FEMALE or MALE STERILITY STYLE SUPPRESSION.
+function (logical)isRecessiveSterilitySuppressed(o<Individual>$ ind) {
+	// Check both chromosomes for drive and type 2 resistance allele. These are the only variants that affect suppression.
+	// Individual cannot reproduce if both chromosomes have either a drive or an r2.
+ 	if (ind.sex == "F") 	
+		if ((ind.genome1.countOfMutationsOfType(m6) >0 | ind.genome1.countOfMutationsOfType(m9) > 0) & (ind.genome2.countOfMutationsOfType(m6) >0| ind.genome2.countOfMutationsOfType(m9) > 0))
+		return T;
+	return F;
+}
+
+//// FUNCTION FOR FORMING A RESISTANCE ALLELE AT A GIVEN LOCUS.
+function (void)addResistanceAllele1(o<Genome>$ genome, i$ locus) {
+	// Resistance alleles form at a specified rate.	m7:r12; m8:r22
+	genome.addNewDrawnMutation(ifelse((runif(1) < R12_OCCURRENCE_RATE), m7,m8), locus);
+}
+
+//// HELPER FUNCTION FOR FORMING A RESISTANCE ALLELE AT G3.(only R2 on this locus)
+
+function (void)addResistanceAllele2(o<Genome>$ genome, i$ locus) {
+    // Resistance alleles form at a specified rate.
+    
+   genome.addNewDrawnMutation(ifelse((runif(1) < R13_OCCURRENCE_RATE), m14,m9), locus);
+}
+
+//cascut function
+function (void)casCut1(o<Genome>$ chromosome, f$ per_phase_cut_rate) {
+	// If chromosome has no wild type targets to cut, cas9 does nothing.
+	if (chromosome.countOfMutationsOfType(m2) == 0)
+		return;
+	// Vector of possible loci for cas9 to cut:
+	wt_loci2 = chromosome.positionsOfMutationsOfType(m2);
+	// In each cut phase...
+
+	for (i in seqLen(NUM_CUT_PHASES)) {
+		// At each possible locus...
+		for (j in seqAlong(wt_loci2)) {
+			// Check to see if cas9 cuts...
+			if (runif(1) < per_phase_cut_rate) {
+				// Convert the locus temporarily to an cut,
+				// representing that this site is being cut.
+				chromosome.addNewDrawnMutation(m10, wt_loci2[j]);
+			}
+		}
+		// If any cuts were made...
+		if (chromosome.countOfMutationsOfType(m10)) {
+			cut_loci = chromosome.positionsOfMutationsOfType(m10);
+			// If just one cut is made, create an R1 or R2 resistance allele.
+		if (chromosome.countOfMutationsOfType(m10) == 1)
+				
+				addResistanceAllele1(chromosome, cut_loci[0]);
+				
+		else {
+			
+			number_of_cuts = cut_loci[size(cut_loci) - 1] - cut_loci[0];
+			for (index in seqLen(number_of_cuts))
+				chromosome.addNewDrawnMutation(m12, cut_loci[0] + index + 1);
+		chromosome.addNewDrawnMutation(m8, cut_loci[0]);
+		}
+					if (chromosome.countOfMutationsOfType(m2) == 0)//have no wt to be cut
+				return;
+				wt_loci = chromosome.positionsOfMutationsOfType(m2);
+		}
+	}
+}
+
+
+
+//// FUNCTION FOR CAS9 CUTTING TARGET CHROMOSOME(wt3).
+
+function (void)casCut2(o<Genome>$ chromosome, f$ per_phase_cut_rate) {
+	// If chromosome has no wild type targets to cut, cas9 does nothing.
+	if (chromosome.countOfMutationsOfType(m3) == 0)
+		return;
+	// Vector of possible loci for cas9 to cut:
+	wt_loci3 = chromosome.positionsOfMutationsOfType(m3);
+	// In each cut phase...
+	for (i in seqLen(NUM_CUT_PHASES)) {
+		// At each possible locus...
+		for (j in seqAlong(wt_loci3)) {
+			// Check to see if cas9 cuts...
+			if (runif(1) < per_phase_cut_rate) {
+				// Convert the locus temporarily to an cut,
+				// representing that this site is being cut.
+				chromosome.addNewDrawnMutation(m11, wt_loci3[j]);
+			}
+		}
+		// If any cuts were made...
+		if (chromosome.countOfMutationsOfType(m11)) {
+			cut_loci = chromosome.positionsOfMutationsOfType(m11);
+			// If just one cut is made, create an R1 or R2 resistance allele.
+		if (chromosome.countOfMutationsOfType(m11) == 1)
+				addResistanceAllele2(chromosome, cut_loci[0]);
+
+		else {
+			number_of_cuts = cut_loci[size(cut_loci) - 1] - cut_loci[0];
+			for (index in seqLen(number_of_cuts))
+				chromosome.addNewDrawnMutation(m13, cut_loci[0] + index + 1);
+		chromosome.addNewDrawnMutation(m9, cut_loci[0]);
+		}
+					if (chromosome.countOfMutationsOfType(m3) == 0)//have no wt to be cut
+				return;
+				wt_loci = chromosome.positionsOfMutationsOfType(m3);
+		}
+	}
+}
+
+//// FUNCTION FOR CAS9 EFFECTS IN THE GERMLINE.
+
+function (void)germline(o<Genome>$ child_chromosome, o<Individual>$ parent, f$ resistance_rate) {
+	// Determine presence of drive in this parent.
+	parent_drive_count1 = sum(parent.genomes.countOfMutationsOfType(m4) == NUM_GRNAS);
+	parent_drive_count2 = sum(parent.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+	parent_drive_count3 = sum(parent.genomes.countOfMutationsOfType(m6) == NUM_GRNAS2);
+
+	// If parent doesn't have cas9 allele(dr2/m5), nothing happens in germline.
+	if (!parent_drive_count2)
+		return;
+
+	if ((!parent_drive_count1)&(!parent_drive_count3))
+		return;
+
+	// Chromosome must have wt to cut, or nothing happens.
+	if ((child_chromosome.countOfMutationsOfType(m2) == 0)&(child_chromosome.countOfMutationsOfType(m3) == 0))
+		return;
+	
+	if ((parent_drive_count1)&(!parent_drive_count3)) {
+	    if (child_chromosome.countOfMutationsOfType(m2) == 0)
+	        return;
+	    grna_factor = 1;
+	    per_phase_cut_rate = 1 - (1 - resistance_rate)^(1 / (NUM_CUT_PHASES * grna_factor));
+	    // Determine if cas9 cuts the chromosome in the germline.
+	    
+	    casCut1(child_chromosome, per_phase_cut_rate);
+	}
+	
+	if ((!parent_drive_count1)&(parent_drive_count3)){
+	    if (child_chromosome.countOfMutationsOfType(m3) == 0)
+	        return;
+	    grna_factor = 1;
+	    per_phase_cut_rate = 1- (1 - resistance_rate)^(1 / (NUM_CUT_PHASES * grna_factor));
+	   // print("aaaa"+per_phase_cut_rate);
+	    // Determine if cas9 cuts the chromosome in the germline.
+	    casCut2(child_chromosome, per_phase_cut_rate);
+	    }
+	  	 //return;
+	if (parent_drive_count1&parent_drive_count3){//
+	    if ((child_chromosome.countOfMutationsOfType(m2)> 0)&(child_chromosome.countOfMutationsOfType(m3) == 0)){
+	        grna_factor = 1;
+	        per_phase_cut_rate = 1 - (1 - resistance_rate)^(1 / (NUM_CUT_PHASES * grna_factor));
+	    // Determine if cas9 cuts the chromosome in the germline.
+	        casCut1(child_chromosome, per_phase_cut_rate);	    
+	        }
+	    if ((child_chromosome.countOfMutationsOfType(m2) == 0)&(child_chromosome.countOfMutationsOfType(m3)>0)){
+	        grna_factor = 1;
+	        per_phase_cut_rate = 1 - (1 - resistance_rate)^(1 / (NUM_CUT_PHASES * grna_factor));
+	    // Determine if cas9 cuts the chromosome in the germline.
+	       // print("bbbb"+per_phase_cut_rate);
+	        casCut2(child_chromosome, per_phase_cut_rate);	    
+	        }
+	    if ((child_chromosome.countOfMutationsOfType(m2) > 0)&(child_chromosome.countOfMutationsOfType(m3) > 0)){
+	        grna_factor = 1;
+	        per_phase_cut_rate = 1- (1 - resistance_rate)^(1 / (NUM_CUT_PHASES * grna_factor));
+	       // print("cccc"+per_phase_cut_rate);
+	    // Determine if cas9 cuts the chromosome in the germline.
+	        casCut1(child_chromosome, per_phase_cut_rate); 
+	        casCut2(child_chromosome, per_phase_cut_rate);	    
+	      }
+	 }
+}
+
+
+
+
+//// FUNCTION FOR CAS9 EFFECTS IN EMBRYO.
+function (void)embryo(o<Genome>$ child_chromosome_1, o<Genome>$ child_chromosome_2, o<Individual>$ mother, f$ resistance_rate)  {
+	// Determine presence of drive in this mother.
+	mother_drive_count1 = sum(mother.genomes.countOfMutationsOfType(m4) == NUM_GRNAS);
+	mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+	mother_drive_count3 = sum(mother.genomes.countOfMutationsOfType(m6) == NUM_GRNAS2);
+	// If mother doesn't have drive allele, nothing happens in embryo.
+	if (!mother_drive_count2)
+		return;
+	if ((!mother_drive_count1)&(!mother_drive_count3))
+		return;
+	
+	if ((mother_drive_count1)&(!mother_drive_count3)){//have dr1 and dr2
+	//print("add_resistance");
+	    grna_factor = 1;
+	    mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+	    per_phase_cut_rate = 1 - (1 - resistance_rate)^(mother_drive_count2 / (NUM_CUT_PHASES * grna_factor));
+	    //print("aaa" + mother_drive_count1);
+	    //print(mother_drive_count3);
+    	if ((sum(mother.genomes.countOfMutationsOfType(m2) == NUM_GRNAS1) == 1)&sum(mother.genomes.countOfMutationsOfType(m1) == NUM_GRNAS1) == 1){//这里统计的永远是cas9/wt2
+    		 mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+    	 //print(mother_drive_count3);
+        // Special case for homing drive individual that is dr/wt based on experimental data.
+        cas_factor = 1.83;
+	    per_phase_cut_rate = 1 - (1 - resistance_rate)^(mother_drive_count2 / (NUM_CUT_PHASES * grna_factor*cas_factor));
+	    }
+	    //print("per_phase_cut_rate at 1:"+per_phase_cut_rate);
+	    //print(per_phase_cut_rate);
+	// Then pass this rate as an argument to  the casCut funtion to
+	// determine if cas9 cuts in the embryo for each chromosome.
+	    casCut1(child_chromosome_1, per_phase_cut_rate);
+	    casCut1(child_chromosome_2, per_phase_cut_rate);
+	    //return;
+}
+	//
+	/////////////////
+	if ((!mother_drive_count1) & (mother_drive_count3)){//have dr3 and dr2
+		//print(mother_drive_count3);
+		 grna_factor = 1;
+	    mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+	    per_phase_cut_rate = 1 - (1 - resistance_rate)^(mother_drive_count2 / (NUM_CUT_PHASES * grna_factor));
+	    
+	   //print("bbbbb" + mother_drive_count1);
+    if ((sum(mother.genomes.countOfMutationsOfType(m2) == NUM_GRNAS1) ==1)&(sum(mother.genomes.countOfMutationsOfType(m3) == NUM_GRNAS1) ==1)){
+    	mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+        // Special case for homing drive individual that is dr/wt based on experimental data.
+        cas_factor = 1.83;
+	    per_phase_cut_rate = 1 - (1 - resistance_rate)^(mother_drive_count2 / (NUM_CUT_PHASES * grna_factor*cas_factor));}
+		//print("per_phase_cut_rate at 2:"+per_phase_cut_rate);
+	// Then pass this rate as an argument to  the casCut funtion to
+	// determine if cas9 cuts in the embryo for each chromosome.
+	    casCut2(child_chromosome_1, per_phase_cut_rate);
+	    casCut2(child_chromosome_2, per_phase_cut_rate);
+	   // return;
+	}	
+	//
+	
+	if ((mother_drive_count1)&(mother_drive_count3)){
+	//print("ccccccc" + mother_drive_count1);
+	    grna_factor = 1;
+	    mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+	    per_phase_cut_rate1 = 1 - (1 - resistance_rate)^(mother_drive_count2 / (NUM_CUT_PHASES * grna_factor));
+	    per_phase_cut_rate2 = 1 - (1 - resistance_rate)^(mother_drive_count2 / (NUM_CUT_PHASES * grna_factor));	    
+	   if (HOMING_DRIVE & 
+	   (sum(mother.genomes.countOfMutationsOfType(m2) == NUM_GRNAS1) == 1)&
+	   (sum(mother.genomes.countOfMutationsOfType(m1) == NUM_GRNAS) == 1)){
+        // Special case for homing drive individual that is dr/wt based on experimental data.
+       // mother_drive_count2 = HET_MOTHER_CAS_INHERITANCE;	
+       cas_factor = 1.83;	
+	// Then pass this rate as an argument to  the casCut funtion to
+	// determine if cas9 cuts in the embryo for each chromosome.
+		mother_drive_count1 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+		per_phase_cut_rate1 = 1 - (1 - resistance_rate)^(mother_drive_count2 / (cas_factor*NUM_CUT_PHASES * grna_factor));}
+		//print("per_phase_cut_rate1"+per_phase_cut_rate1);
+		 casCut1(child_chromosome_1, per_phase_cut_rate1);
+	    casCut1(child_chromosome_2, per_phase_cut_rate1);
+
+	    //print("per_phase_cut_rate at 3:"+per_phase_cut_rate);
+    if (HOMING_DRIVE & (sum(mother.genomes.countOfMutationsOfType(m2) == NUM_GRNAS1) == 1)&sum(mother.genomes.countOfMutationsOfType(m3) == NUM_GRNAS2) == 1){
+        // Special case for homing drive individual that is dr/wt based on experimental data.
+       // mother_drive_count2 = HET_MOTHER_CAS_INHERITANCE;	
+       cas_factor = 1.83;	
+	// Then pass this rate as an argument to  the casCut funtion to
+	// determine if cas9 cuts in the embryo for each chromosome.
+		mother_drive_count2 = sum(mother.genomes.countOfMutationsOfType(m5) == NUM_GRNAS1);
+		per_phase_cut_rate2 = 1 - (1 - resistance_rate)^(mother_drive_count2 / (cas_factor*NUM_CUT_PHASES * grna_factor));}	
+		//print("per_phase_cut_rate2"+per_phase_cut_rate2);
+		//print("per_phase_cut_rate at 3:"+per_phase_cut_rate);
+	    casCut2(child_chromosome_1, per_phase_cut_rate2);
+	    casCut2(child_chromosome_2, per_phase_cut_rate2);
+    }
+}
+
+
+
+
+
+//// FUNCTION FOR SIMULATING HOMING THAT OCCURS DURING HOMOLOGY DIRECTED REPAIR.
+
+function (void)hdr(o<Genome>$ chromosome, o<Individual>$ parent, f$ cut_rate) {
+    // If chromosome has no wild type targets to cut, cas9 does nothing.
+    if ((chromosome.countOfMutationsOfType(m2) == 0)&(chromosome.countOfMutationsOfType(m3) == 0))
+        return;
+        
+    // Determine presence of drive in this parent.
+    parent_c1_drive1 = parent.genome1.countOfMutationsOfType(m4) == NUM_GRNAS;
+    parent_c2_drive1 = parent.genome2.countOfMutationsOfType(m4) == NUM_GRNAS;
+    
+    parent_c1_drive2 = parent.genome1.countOfMutationsOfType(m5) == NUM_GRNAS1;
+    parent_c2_drive2 = parent.genome2.countOfMutationsOfType(m5) == NUM_GRNAS1;   
+     
+    parent_c1_drive3 = parent.genome1.countOfMutationsOfType(m6) == NUM_GRNAS2;
+    parent_c2_drive3 = parent.genome2.countOfMutationsOfType(m6) == NUM_GRNAS2;
+
+       
+    parent_has_drive1 = parent_c1_drive1 | parent_c2_drive1;
+	 parent_has_drive2 = parent_c1_drive2 | parent_c2_drive2;    
+    parent_has_drive3 = parent_c1_drive3 | parent_c2_drive3;
+
+ 
+    // If parent doesn't have drive2 allele(cas9), or drive (1 and 3), nothing happens in germline.
+    
+    if (!parent_has_drive2)//no cas9
+        return;
+    if ((!parent_has_drive1)&(!parent_has_drive3)) //no grna
+		  return;
+
+    // Rate of cutting during hdr, modified by gRNA saturation and variable cutting activity, if toggled on.
+    // This model allows for varying rates of cutting at each locus.
+    grna_factor = 1;
+    cas_factor = GLOBAL_SATURATION_FACTOR * grna_factor / (GLOBAL_SATURATION_FACTOR - 1 + grna_factor); 
+    local_cas_factor = cas_factor * (1 + GRNA_ACTIVITY_VARIATION);
+    local_cut_rate = 1 - (1 - cut_rate)^(local_cas_factor / grna_factor);
+    cut_rates = local_cut_rate;
+    //print("cut_rate:"+cut_rate);
+    //print("local_cas_factor:"+local_cas_factor);
+    //print("grna_factor"+grna_factor);
+    //print("local_cut_rate"+local_cut_rate);
+    // Now fill in the rest of the vector.
+    for (i in seqLen(NUM_GRNAS)) {
+        local_cas_factor = cas_factor * (1 + GRNA_ACTIVITY_VARIATION - (i + 1) * GRNA_ACTIVITY_STEP);
+        local_cut_rate = 1 - (1 - cut_rate)^(local_cas_factor / grna_factor);
+        // Concatenate the previous vector with the next cut rate calculated:
+        cut_rates = c(cut_rates, local_cut_rate); 
+       // print("ssssss"+cut_rates);
+    }
+    // Vector of possible loci.
+    wt_loci2 = chromosome.positionsOfMutationsOfType(m2);
+    wt_loci3 = chromosome.positionsOfMutationsOfType(m3);
+
+////1. if parent has dr1 and dr2:cut wt loci 2
+    if ((parent_has_drive1)&(!parent_has_drive3)){            //
+    		if (chromosome.countOfMutationsOfType(m2) == 0)
+    			return;
+        // At each possible locus...
+        for (i in seqAlong(wt_loci2))
+        		//print("i"+i);
+        // Check to see if cas9 cuts...
+            if (runif(1) < local_cut_rate)
+            // Convert the locus temporarily to an m10(cut2),
+            // representing that this site is being cut.
+                chromosome.addNewDrawnMutation(m10, wt_loci2[i]);                
+    // If any cuts were made on wt2...    
+        if (chromosome.countOfMutationsOfType(m10)) {
+            cut_loci = chromosome.positionsOfMutationsOfType(m10);
+            //print("see"+cut_loci);
+            leftmost_cut_index = cut_loci[0];
+            //print("leftmost_cut_index"+leftmost_cut_index);
+            rightmost_cut_index = cut_loci[size(cut_loci) - 1];
+            //print("rightmost_cut_index"+rightmost_cut_index);
+        // Sections that have already been cut out of the chromosome
+        // also contribute to the size of the cut section.
+            missing_loci = chromosome.positionsOfMutationsOfType(m12);
+            		adjusted_left_index = NUM_GRNAS+3 -leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+
+           // adjusted_left_index = 3-leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+            rightmost_cut_index = rightmost_cut_index + sum(missing_loci > rightmost_cut_index);
+            adjusted_right_index = 	(NUM_GRNAS1+NUM_GRNAS+3) - 1 - rightmost_cut_index;
+           // print("adjusted_right_index1"+adjusted_right_index);
+            //print("adjusted_left_index1"+adjusted_left_index);
+            successful_homing_rate = BASELINE_HOMING_SUCCESS_RATE * (1 - HOMING_EDGE_EFFECT * adjusted_left_index) * (1 - HOMING_EDGE_EFFECT * adjusted_right_index);  
+           //print("successful_homing_rate"+successful_homing_rate);
+            //截止到这一步，没问题
+       if (runif(1) < successful_homing_rate)//成功切割
+            	
+           for (i in (NUM_GRNAS+2+1):(NUM_GRNAS+NUM_GRNAS1+2)) 
+             
+                    chromosome.addNewDrawnMutation(m5, i);//dr2 is added
+
+            
+       else {
+            	total_failure_avoidance_rate = 0.9 * (1 - 0.1 * adjusted_left_index) * (1 - 0.1 * adjusted_right_index);
+        if (runif(1) < total_failure_avoidance_rate) {
+				// Some catastrophic failures become all R1, at the following rate:
+				total_r1_rate = 0.001 * (1 + adjusted_right_index - adjusted_left_index);
+				// All-R1 catastrophic failures occur only in HAPLOSUFFICIENT or HAPLOSLETHAL drives.
+				if (runif(1) < total_r1_rate & (HAPLOLETHAL | HAPLOSUFFICIENT))
+					for (i in (NUM_GRNAS+2+1):(NUM_GRNAS+NUM_GRNAS1+2)) 
+						chromosome.addNewDrawnMutation(m7, i);
+				else
+					for (i in (NUM_GRNAS+2+1):(NUM_GRNAS+NUM_GRNAS1+2)) 
+						chromosome.addNewDrawnMutation(m8, i);
+			}
+			else {
+				// If just one cut was made, create an R1 or R2 resistance allele.
+				if (chromosome.countOfMutationsOfType(m10) == 1)
+					addResistanceAllele1(chromosome, cut_loci[0]);
+				else {
+				//
+					// If mutlple cuts were made, leftmost site to m4 (R2),
+					// everthing else through the rightmost site to m6 (cut).
+					number_of_cuts = cut_loci[size(cut_loci) - 1] - cut_loci[0];
+					for (index in seqLen(number_of_cuts)) 
+						chromosome.addNewDrawnMutation(m10, cut_loci[0] + index + 1);
+					chromosome.addNewDrawnMutation(m8, cut_loci[0]);
+            
+					}
+				}
+            }
+			}
+  }
+ 
+//这里也要改！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！！
+
+////2. if parent has dr2 and dr3
+    if ((!parent_has_drive1)&(parent_has_drive3)){//have cas9 and cargo gene,cut loci3
+       if (chromosome.countOfMutationsOfType(m3) == 0)
+    			return;
+        // At each possible locus...
+        for (i in seqAlong(wt_loci3))
+        // Check to see if cas9 cuts...
+            if (runif(1) < local_cut_rate)
+                chromosome.addNewDrawnMutation(m11, wt_loci3[i]);
+    // If any cuts were made on wt2...
+     // If any cuts were made on wt2...
+    
+        if (chromosome.countOfMutationsOfType(m11)) {
+            cut_loci = chromosome.positionsOfMutationsOfType(m11);
+            leftmost_cut_index = cut_loci[0];
+            rightmost_cut_index = cut_loci[size(cut_loci) - 1];
+        // Sections that have already been cut out of the chromosome
+        // also contribute to the size of the cut section.
+            missing_loci = chromosome.positionsOfMutationsOfType(m13);
+            //
+           adjusted_left_index = NUM_GRNAS1+NUM_GRNAS +5 -leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+
+           // adjusted_left_index = 3-leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+           
+//ends = c(NUM_GRNAS+1, NUM_GRNAS+2, NUM_GRNAS1+NUM_GRNAS +3, NUM_GRNAS1+NUM_GRNAS +4,NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+6);
+ 
+            rightmost_cut_index = rightmost_cut_index + sum(missing_loci > rightmost_cut_index);
+            adjusted_right_index = 	NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+5 - 1 - rightmost_cut_index;
+
+            successful_homing_rate = BASELINE_HOMING_SUCCESS_RATE * (1 - HOMING_EDGE_EFFECT * adjusted_left_index) * (1 - HOMING_EDGE_EFFECT * adjusted_right_index);  
+            //print("successful_homing_rate"+successful_homing_rate);
+           // print("successful_homing_rate 2 ;"+successful_homing_rate );
+            if (runif(1) < successful_homing_rate)
+                for (i in (NUM_GRNAS1+NUM_GRNAS +5):(NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4)) 
+                    chromosome.addNewDrawnMutation(m6, i);//dr2 is added
+            			//print("i:"+i);
+            
+            else {
+            	total_failure_avoidance_rate = 0.9 * (1 - 0.1 * adjusted_left_index) * (1 - 0.1 * adjusted_right_index);
+            	if (runif(1) < total_failure_avoidance_rate) {
+				// Some catastrophic failures become all R1, at the following rate:
+				total_r1_rate = 0.001 * (1 + adjusted_right_index - adjusted_left_index);
+				// All-R1 catastrophic failures occur only in HAPLOSUFFICIENT or HAPLOSLETHAL drives.      
+				//
+				
+				if (runif(1) < total_r1_rate & (HAPLOLETHAL | HAPLOSUFFICIENT))
+					for (i in (NUM_GRNAS1+NUM_GRNAS +5):(NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4)) 
+						chromosome.addNewDrawnMutation(m14, i);
+				else
+					for  (i in (NUM_GRNAS1+NUM_GRNAS +5):(NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4)) 
+						chromosome.addNewDrawnMutation(m9, i);
+			}
+			else {
+				// If just one cut was made, create an R1 or R2 resistance allele.
+				if (chromosome.countOfMutationsOfType(m11) == 1)
+					addResistanceAllele2(chromosome, cut_loci[0]);
+				else {
+				//
+					// If mutlple cuts were made, leftmost site to m4 (R2),
+					// everthing else through the rightmost site to m6 (cut).
+					number_of_cuts = cut_loci[size(cut_loci) - 1] - cut_loci[0];
+					for (index in seqLen(number_of_cuts)) 
+						chromosome.addNewDrawnMutation(m11, cut_loci[0] + index + 1);
+					chromosome.addNewDrawnMutation(m9, cut_loci[0]);
+            
+					}
+				}
+            }
+			}
+  }
+  
+////3. if parent has all the drive elements
+
+//resistance alleles
+  //  r12 =  initializeMutationType("m7", 0.5, "f", 0.0);//r1 occurs on chromosome 2
+  //  r22 = initializeMutationType("m8", 0.5, "f", 0.0);//r2 occurs on chromosome 2
+  //  r13 = initializeMutationType("m14", 0.5, "f", 0.0);//r1 occurs on chromosome 3
+  //  r23 = initializeMutationType("m9", 0.5, "f", 0.0);//r2 occurs on chromosome 3
+    
+//cut and gap
+ //   cut2 = initializeMutationType("m10", 0.5, "f", 0.0);
+   // cut3 = initializeMutationType("m11", 0.5, "f", 0.0);
+//
+    //gap2 =  initializeMutationType("m12", 0.5, "f", 0.0);
+	// gap3 =  initializeMutationType("m13", 0.5, "f", 0.0);
+    // Vector of possible loci.
+if ((parent_has_drive1)&(parent_has_drive3)){
+    wt_loci2 = chromosome.positionsOfMutationsOfType(m2);
+    wt_loci3 = chromosome.positionsOfMutationsOfType(m3);
+////1. if parent has dr1 and dr2:cut wt loci 2
+        // At each possible locus...
+    if (parent.countOfMutationsOfType(m2)>0){
+        for (i in seqAlong(wt_loci2))
+        // Check to see if cas9 cuts...
+            if (runif(1) < local_cut_rate)
+            // Convert the locus temporarily to an m10(cut2),
+            // representing that this site is being cut.
+                chromosome.addNewDrawnMutation(m10, wt_loci2[i]);
+    // If any cuts were made on wt2...
+    
+        if (chromosome.countOfMutationsOfType(m10)) {
+            cut_loci = chromosome.positionsOfMutationsOfType(m10);
+            leftmost_cut_index = cut_loci[0];
+            rightmost_cut_index = cut_loci[size(cut_loci) - 1];
+        // Sections that have already been cut out of the chromosome
+        // also contribute to the size of the cut section.
+            missing_loci = chromosome.positionsOfMutationsOfType(m12);
+            		adjusted_left_index = NUM_GRNAS+3 -leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+
+           // adjusted_left_index = 3-leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+            rightmost_cut_index = rightmost_cut_index + sum(missing_loci > rightmost_cut_index);
+            adjusted_right_index = 	(NUM_GRNAS1+NUM_GRNAS+3) - 1 - rightmost_cut_index;
+            
+            successful_homing_rate = BASELINE_HOMING_SUCCESS_RATE * (1 - HOMING_EDGE_EFFECT * adjusted_left_index) * (1 - HOMING_EDGE_EFFECT * adjusted_right_index);  
+            
+            if (runif(1) < successful_homing_rate)
+                for (i in (NUM_GRNAS+2+1):(NUM_GRNAS+NUM_GRNAS1+2)) 
+                    chromosome.addNewDrawnMutation(m5, i);//dr2 is added
+            
+            else {
+            	total_failure_avoidance_rate = 0.9 * (1 - 0.1 * adjusted_left_index) * (1 - 0.1 * adjusted_right_index);
+            	if (runif(1) < total_failure_avoidance_rate) {
+				// Some catastrophic failures become all R1, at the following rate:
+				total_r1_rate = 0.001 * (1 + adjusted_right_index - adjusted_left_index);
+				// All-R1 catastrophic failures occur only in HAPLOSUFFICIENT or HAPLOSLETHAL drives.
+				if (runif(1) < total_r1_rate & (HAPLOLETHAL | HAPLOSUFFICIENT))
+					for (i in (NUM_GRNAS+2+1):(NUM_GRNAS+NUM_GRNAS1+2)) 
+						chromosome.addNewDrawnMutation(m7, i);
+				else
+					for (i in (NUM_GRNAS+2+1):(NUM_GRNAS+NUM_GRNAS1+2)) 
+						chromosome.addNewDrawnMutation(m8, i);
+			}
+			else {
+				// If just one cut was made, create an R1 or R2 resistance allele.
+				if (chromosome.countOfMutationsOfType(m10) == 1)
+					addResistanceAllele1(chromosome, cut_loci[0]);
+				else {
+				//
+					// If mutlple cuts were made, leftmost site to m4 (R2),
+					// everthing else through the rightmost site to m6 (cut).
+					number_of_cuts = cut_loci[size(cut_loci) - 1] - cut_loci[0];
+					for (index in seqLen(number_of_cuts)) 
+						chromosome.addNewDrawnMutation(m10, cut_loci[0] + index + 1);
+					chromosome.addNewDrawnMutation(m8, cut_loci[0]);
+             }	
+				}
+            }
+			}
+  }
+  //问题在这一部分！！
+     // cut3 = initializeMutationType("m11", 0.5, "f", 0.0);
+//
+	// gap3 =  initializeMutationType("m13", 0.5, "f", 0.0);
+	
+	if (parent.countOfMutationsOfType(m3)>0){
+        for (i in seqAlong(wt_loci3))
+        // Check to see if cas9 cuts...
+            if (runif(1) < local_cut_rate)
+                chromosome.addNewDrawnMutation(m11, wt_loci3[i]);
+    // If any cuts were made on wt2...
+     // If any cuts were made on wt2...
+    
+        if (chromosome.countOfMutationsOfType(m11)) {
+            cut_loci = chromosome.positionsOfMutationsOfType(m11);
+            leftmost_cut_index = cut_loci[0];
+            rightmost_cut_index = cut_loci[size(cut_loci) - 1];
+        // Sections that have already been cut out of the chromosome
+        // also contribute to the size of the cut section.
+            missing_loci = chromosome.positionsOfMutationsOfType(m13);
+            //
+            		adjusted_left_index = NUM_GRNAS1+NUM_GRNAS +5 -leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+           // adjusted_left_index = 3-leftmost_cut_index - sum(missing_loci < leftmost_cut_index);
+//ends = c(NUM_GRNAS+1, NUM_GRNAS+2, NUM_GRNAS1+NUM_GRNAS +3, NUM_GRNAS1+NUM_GRNAS +4,NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+6);
+            rightmost_cut_index = rightmost_cut_index + sum(missing_loci > rightmost_cut_index);
+            adjusted_right_index = 	NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+5 - 1 - rightmost_cut_index;
+            successful_homing_rate = BASELINE_HOMING_SUCCESS_RATE * (1 - HOMING_EDGE_EFFECT * adjusted_left_index) * (1 - HOMING_EDGE_EFFECT * adjusted_right_index);  
+            
+            if (runif(1) < successful_homing_rate)
+                for (i in (NUM_GRNAS1+NUM_GRNAS +5):(NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4)) 
+                    chromosome.addNewDrawnMutation(m6, i);//dr3 is added
+                    
+            
+            else {
+            	total_failure_avoidance_rate = 0.9 * (1 - 0.1 * adjusted_left_index) * (1 - 0.1 * adjusted_right_index);
+            	if (runif(1) < total_failure_avoidance_rate) {
+				// Some catastrophic failures become all R1, at the following rate:
+				total_r1_rate = 0.001 * (1 + adjusted_right_index - adjusted_left_index);
+				// All-R1 catastrophic failures occur only in HAPLOSUFFICIENT or HAPLOSLETHAL drives.      
+				//该改这里了
+				
+				if (runif(1) < total_r1_rate & (HAPLOLETHAL | HAPLOSUFFICIENT))
+					for (i  in (NUM_GRNAS1+NUM_GRNAS +5):(NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4)) 
+						chromosome.addNewDrawnMutation(m14, i);
+				else
+					for (i in (NUM_GRNAS1+NUM_GRNAS +5):(NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+4)) 
+						chromosome.addNewDrawnMutation(m9, i);
+			}
+			else {
+				// If just one cut was made, create an R1 or R2 resistance allele.
+				if (chromosome.countOfMutationsOfType(m11) == 1)
+					addResistanceAllele2(chromosome, cut_loci[0]);
+				else {
+				//
+					// If mutlple cuts were made, leftmost site to m4 (R2),
+					// everthing else through the rightmost site to m6 (cut).
+					number_of_cuts = cut_loci[size(cut_loci) - 1] - cut_loci[0];
+					for (index in seqLen(number_of_cuts)) 
+						chromosome.addNewDrawnMutation(m11, cut_loci[0] + index + 1);
+					chromosome.addNewDrawnMutation(m9, cut_loci[0]);
+            	 } 
+					}
+				}
+            }
+			}
+  }            
+}       
+	 
+   
+    
+    
+    
+    
+    
+    
+
+
+
+
+//// FUNCTION TO OVERWRITE ONE GENOME WITH ANOTHER.
+function (void)copy_genome(o<Genome>$ source, o<Genome>$ destination) {
+    m1_loci = source.positionsOfMutationsOfType(m1);
+    m2_loci = source.positionsOfMutationsOfType(m2);
+    m3_loci = source.positionsOfMutationsOfType(m3);
+    m4_loci = source.positionsOfMutationsOfType(m4);
+    m5_loci = source.positionsOfMutationsOfType(m5);
+    m6_loci = source.positionsOfMutationsOfType(m6);
+    m7_loci = source.positionsOfMutationsOfType(m7);
+    m8_loci = source.positionsOfMutationsOfType(m8);
+    m9_loci = source.positionsOfMutationsOfType(m9);
+    m10_loci = source.positionsOfMutationsOfType(m10);
+    m11_loci = source.positionsOfMutationsOfType(m11);
+    m12_loci = source.positionsOfMutationsOfType(m12);
+    m13_loci = source.positionsOfMutationsOfType(m13);
+    m14_loci = source.positionsOfMutationsOfType(m14);
+    for (i in seqAlong(m1_loci))
+        destination.addNewDrawnMutation(m1, m1_loci[i]);
+    for (i in seqAlong(m2_loci))
+        destination.addNewDrawnMutation(m2, m2_loci[i]);
+    for (i in seqAlong(m3_loci))
+        destination.addNewDrawnMutation(m3, m3_loci[i]);
+    for (i in seqAlong(m4_loci))
+        destination.addNewDrawnMutation(m4, m4_loci[i]);
+    for (i in seqAlong(m5_loci))
+        destination.addNewDrawnMutation(m5, m5_loci[i]);
+    for (i in seqAlong(m6_loci))
+        destination.addNewDrawnMutation(m6, m6_loci[i]);
+    for (i in seqAlong(m7_loci))
+        destination.addNewDrawnMutation(m7, m7_loci[i]);
+    for (i in seqAlong(m8_loci))
+        destination.addNewDrawnMutation(m8, m8_loci[i]);
+    for (i in seqAlong(m9_loci))
+        destination.addNewDrawnMutation(m9, m9_loci[i]);
+    for (i in seqAlong(m10_loci))
+        destination.addNewDrawnMutation(m10, m10_loci[i]);
+    for (i in seqAlong(m11_loci))
+        destination.addNewDrawnMutation(m11, m11_loci[i]);
+    for (i in seqAlong(m12_loci))
+        destination.addNewDrawnMutation(m12, m12_loci[i]);
+    for (i in seqAlong(m13_loci))
+        destination.addNewDrawnMutation(m13, m13_loci[i]);
+    for (i in seqAlong(m14_loci))
+        destination.addNewDrawnMutation(m14, m14_loci[i]);
+}
+
+
+
+
+
+
+
+
+//// RULES FOR FITNESS BASED ON GENOTYPE.
+function (f$)genotypeFitness(o<Individual>$ ind) {
+    // Representation of the value of the two chromosomes.
+    fitness_value = 1.0;
+    // Check both chromosomes for drive and type 2 resistance allele.
+    // These are the only variants that affect fitness.
+    drive1_on_1 = ind.genome1.countOfMutationsOfType(m4) == NUM_GRNAS;
+    drive1_on_2 = ind.genome2.countOfMutationsOfType(m4) == NUM_GRNAS;    
+    drive2_on_1 = ind.genome1.countOfMutationsOfType(m5) == NUM_GRNAS1;
+    drive2_on_2 = ind.genome2.countOfMutationsOfType(m5) == NUM_GRNAS1;
+    drive3_on_1 = ind.genome1.countOfMutationsOfType(m6) == NUM_GRNAS2;
+    drive3_on_2 = ind.genome2.countOfMutationsOfType(m6) == NUM_GRNAS2;
+    res22_on_1 = ind.genome1.countOfMutationsOfType(m8) > 0;
+    res22_on_2 = ind.genome2.countOfMutationsOfType(m8) > 0;
+    res23_on_1 = ind.genome1.countOfMutationsOfType(m9) > 0;
+    res23_on_2 = ind.genome2.countOfMutationsOfType(m9) > 0;
+    wt1_1 = ind.genome1.countOfMutationsOfType(m1) > 0;
+    wt1_2 = ind.genome2.countOfMutationsOfType(m1) > 0;
+    wt2_1 = ind.genome1.countOfMutationsOfType(m2) > 0;
+    wt2_2 = ind.genome2.countOfMutationsOfType(m2) > 0;
+    wt3_1 = ind.genome1.countOfMutationsOfType(m3) > 0;
+    wt3_2 = ind.genome2.countOfMutationsOfType(m3) > 0;
+    
+    somatic_fitness_mult = 1;
+    if (HAPLOLETHAL_SUPPRESSION_DRIVE|RECESSIVE_FEMALE_STERILE_SUPPRESSION_DRIVE)
+   	 if (ind.sex == "F")//apply this only to individual that have cas9 protein
+   	 		if(drive2_on_2|drive2_on_1)
+        				somatic_fitness_mult = SOMATIC_FITNESS_MUTLIPLIER_F;
+  				   
+    // Check both chromosomes for the drive.
+    if (drive1_on_1 & drive1_on_2)  {
+    	if (drive2_on_1 & drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D1D1_FITNESS_VALUE*D2D2_FITNESS_VALUE*D3D3_FITNESS_VALUE;    		   
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D1D1_FITNESS_VALUE*D2D2_FITNESS_VALUE;   
+			    //print("d1d1d2d2"+fitness_value);	
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D1D1_FITNESS_VALUE*D2D2_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	//print("d1d1d2d2d3"+fitness_value);
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;
+    	   		//print("d1d1d2d2d3"+fitness_value);
+    	   		}
+    	   	                       
+    	if (drive2_on_1|drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D1D1_FITNESS_VALUE*D2X_FITNESS_VALUE*D3D3_FITNESS_VALUE;
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D1D1_FITNESS_VALUE*D2X_FITNESS_VALUE;
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D1D1_FITNESS_VALUE*D2X_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;
+    	   }
+ 
+ 
+    	if (!drive2_on_1&!drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D1D1_FITNESS_VALUE*D3D3_FITNESS_VALUE;
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D1D1_FITNESS_VALUE;   	
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D1D1_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult; 
+    	   		//print("1"+fitness_value); 
+    	   			}
+    	   }	
+
+
+    if (drive1_on_1 | drive1_on_2) {  
+    	if (drive2_on_1&drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D1X_FITNESS_VALUE*D2D2_FITNESS_VALUE*D3D3_FITNESS_VALUE;
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D1X_FITNESS_VALUE*D2D2_FITNESS_VALUE;  	
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D1X_FITNESS_VALUE*D2D2_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;  
+    	   		//print("2"+fitness_value);
+    	   		}     	      	   	
+    		
+    	if (drive2_on_1|drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D1X_FITNESS_VALUE*D2X_FITNESS_VALUE*D3D3_FITNESS_VALUE;
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D1X_FITNESS_VALUE*D2X_FITNESS_VALUE;	
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D1X_FITNESS_VALUE*D2X_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;   
+    	   		}
+
+    	if (!drive2_on_1&!drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D1X_FITNESS_VALUE*D3D3_FITNESS_VALUE; 
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D1X_FITNESS_VALUE; 	
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D1X_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;   
+    	   		}
+    	  }
+			   	    	      	    
+    if (!drive1_on_1 & !drive1_on_2) {  
+    	if (drive2_on_1&drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D2D2_FITNESS_VALUE*D3D3_FITNESS_VALUE;
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D2D2_FITNESS_VALUE;
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D2D2_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;  
+    	   		//print("4"+fitness_value);
+    	   		}
+    	if (drive2_on_1|drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D2X_FITNESS_VALUE*D3D3_FITNESS_VALUE;
+
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = D2X_FITNESS_VALUE;
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D2X_FITNESS_VALUE*D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;  
+    	   		} 
+    	if (!drive2_on_1&!drive2_on_2){
+    		if (drive3_on_1&drive3_on_2)
+			    fitness_value = D3D3_FITNESS_VALUE;
+    		if (!drive3_on_1&!drive3_on_2)
+			    fitness_value = 1.0;    	
+    	   if (drive3_on_1|drive3_on_2)
+    	   	fitness_value = D3X_FITNESS_VALUE;
+    	   	if (wt3_1|wt3_2)
+    	   		fitness_value =fitness_value*somatic_fitness_mult;  
+    	   		} 
+    	   }
+    return fitness_value;
+  }
+
+
+
+
+
+//// REPRODUCTION RULES FOR EACH FEMALE.
+reproduction(NULL, "F")
+{
+	// First, evaluate whether reproduction is suppressed by a population suppression drive,
+	// Then, select a mate based on fitness. Then generate offspring.
+	
+	// Check whether the female is sterile.
+	if (RECESSIVE_FEMALE_STERILE_SUPPRESSION_DRIVE)
+		if (isRecessiveSterilitySuppressed(individual))
+			return;
+
+	all_neighbors = i1.nearestNeighbors(individual, subpop.individualCount);
+	neighbors = all_neighbors[all_neighbors.sex == "M"];
+	if (size(neighbors) == 0) // If no mates are in mate detection range, the female won't mate.
+		return;
+	attempt_no = 0;
+	while (1)
+	{
+		// First, select a random mate.
+		mate_no = 0;
+		if (size(neighbors) > 1)
+			mate_no = rdunif(1, max=size(neighbors) - 1);
+		selected_mate = neighbors[mate_no];
+		// Determine attractiveness of mate.
+		mate_attractiveness = 0.5*genotypeFitness(selected_mate);
+		
+		// Inbreeding avoidance factor represents the percent decrease in attractiveness of a brother if positive
+		// and the percent increase in attractiveness of a brother if negative
+		if (selected_mate.pedigreeParentIDs[0] == individual.pedigreeParentIDs[0] & individual.pedigreeParentIDs[0] != -1)
+			mate_attractiveness = mate_attractiveness * (1 - INBREEDING_AVOIDANCE_FACTOR);
+		
+		// Determine if this mate is chosen, based on attractiveness
+		if (runif(1) < mate_attractiveness)
+			break;
+		
+		// After twenty candidates fail, female gives up.
+		attempt_no = attempt_no + 1;
+		if (attempt_no == 19)
+			return;
+	} // Mate has now been selected.
+	
+	// Amount of competition faced per expected competition.
+	n_1 = all_neighbors[abs(all_neighbors.x - individual.x) <= DENSITY_INTERACTION_DISTANCE];
+	adult_density_force = length(n_1) - sum(i1.interactionDistance(individual,n_1))*(1/DENSITY_INTERACTION_DISTANCE);
+	competition_ratio = adult_density_force / EXPECTED_ADULT_COMPETITION;
+	actual_competition_factor = GROWTH_AT_ZERO_DENSITY/ ((GROWTH_AT_ZERO_DENSITY-1) * competition_ratio + 1);
+	
+	// Offspring number based on binomial distrobution.
+	// p for binomial draw. Number of offspring varies with female genes and competition.
+	//p = genotypeFitness(individual) * actual_competition_factor * 0.04 / (1 + RATE_FEMALES_SURVIVE);
+		p =  genotypeFitness(individual) * actual_competition_factor * 2/MAX_OFFSPRING / (1 + RATE_FEMALES_SURVIVE);
+
+	// Inbreeding fecundity penalty represents a percent decrease in the probability of generating offspring due to inbreeding
+	if (selected_mate.pedigreeParentIDs[0] == individual.pedigreeParentIDs[0] & individual.pedigreeParentIDs[0] != -1)
+		p = p * (1-INBREEDING_FECUNDITY_PENALTY);
+	
+	num_offspring = rbinom(1, 50, p);
+	
+	// Check whether the male is sterile.
+	if (RECESSIVE_MALE_STERILE_SUPPRESSION_DRIVE) {
+		if (isRecessiveSterilitySuppressed(selected_mate))
+			num_offspring = 0;
+	}
+	
+	for (i in seqLen(num_offspring)) {
+		// Add offspring to the subpopulation.
+		offspring = subpop.addCrossed(individual, selected_mate);
+		if (!isNULL(offspring))
+		{
+			if (REPRISING_BOUNDARIES)
+			{
+				// Offspring placement within reprising boundaries.
+				if (TWO_DIMENSIONAL)
+				{
+					do position = individual.spatialPosition + rnorm(2, 0, FEMALE_SPEED);
+					while (!individual.subpopulation.pointInBounds(position));
+					offspring.setSpatialPosition(position);
+				} else
+				{
+					// Toroidal world offspring placement.
+					do position = individual.spatialPosition + rnorm(1, 0, FEMALE_SPEED);
+					while (!individual.subpopulation.pointInBounds(position));
+					offspring.setSpatialPosition(position);
+				}
+			}
+			else {
+				if (TWO_DIMENSIONAL) {
+					position = individual.spatialPosition + rnorm(2, 0, FEMALE_SPEED);
+					offspring.setSpatialPosition(p1.pointPeriodic(position));
+				} else {
+					position = individual.spatialPosition + rnorm(1, 0, FEMALE_SPEED);
+					offspring.setSpatialPosition(p1.pointPeriodic(position));
+				}
+			}
+		}
+	}
+}
+
+
+//// GENE DRIVE IMPLEMENTATION RULES THAT OCCUR IN EVERY CHILD.
+1: modifyChild() {
+    res_22_c_1 = child.genome1.countOfMutationsOfType(m8) > 0;
+    res_22_c_2 = child.genome2.countOfMutationsOfType(m8) > 0;
+    res_23_c_1 = child.genome1.countOfMutationsOfType(m9) > 0;
+    res_23_c_2 = child.genome2.countOfMutationsOfType(m9) > 0;
+	if (HOMING_DRIVE) {
+		// Apply effects that happen in the germline.
+		// First, resistance alleles form.
+		//if (!MALE_ONLY_PROMOTER)
+			//germline(child.genome1, parent1, GERMLINE_RESISTANCE_RATE);
+		//germline(child.genome2, parent2, GERMLINE_RESISTANCE_RATE);
+		// Next, homology directed repair allows for homing to occur.
+		if (!MALE_ONLY_PROMOTER)
+			hdr(child.genome1, parent1,DRIVE_CONVERSION);
+		hdr(child.genome2, parent2,DRIVE_CONVERSION);
+		// Then additional resistance alleles form.
+		if (!MALE_ONLY_PROMOTER)
+			germline(child.genome1, parent1, LATE_GERMLINE_RESISTANCE_RATE);
+		germline(child.genome2, parent2, LATE_GERMLINE_RESISTANCE_RATE);
+		
+		// Apply effects that happen in the embryo.
+		if (!MALE_ONLY_PROMOTER)
+			embryo(child.genome1, child.genome2, parent1,EMBRYO_RESISTANCE_RATE);
+	}
+	
+	//two r2 alleles on hair locus will be lethal in the embryo
+	if ((child.genome1.countOfMutationsOfType(m8) > 0) &  (child.genome2.countOfMutationsOfType(m8) > 0))
+			return F;
+	
+	
+	// Any combination of 2 drive or r2 alleles will be lethal in the embryo
+	if (RECESSIVE_BOTH_SEX_LETHAL_SUPPRESSION_DRIVE) {
+		if ((childGenome1.countOfMutationsOfType(m6) == NUM_GRNAS | childGenome1.countOfMutationsOfType(m9) > 0) & (childGenome2.countOfMutationsOfType(m6) == NUM_GRNAS| childGenome2.countOfMutationsOfType(m9) > 0))
+			return F;
+			
+			
+			
+			
+			
+			
+	}
+	return T;
+}
+
+
+//// COLOR RULES FOR SLIM GUI DISPLAY.
+early() {
+	all = sim.subpopulations.individuals;
+	all.color = "seagreen"; // wt individuals are green//be careful: not only wt, but also resistance individuals are green
+	
+		three_dr =      ((all.genome1.countOfMutationsOfType(m4)>0)|(all.genome2.countOfMutationsOfType(m4)>0))& 
+      ((all.genome1.countOfMutationsOfType(m5)>0)|(all.genome2.countOfMutationsOfType(m5)>0))& 
+		((all.genome1.countOfMutationsOfType(m6)>0)|(all.genome2.countOfMutationsOfType(m6)>0))&
+		 ((all.genome1.countOfMutationsOfType(m8)==0)& (all.genome2.countOfMutationsOfType(m8)==0))&
+((all.genome1.countOfMutationsOfType(m9)==0)&(all.genome2.countOfMutationsOfType(m9)==0));
+
+   all[three_dr].color = "pink";
+      
+      two_dr =  ((all.genome1.countOfMutationsOfType(m4)==0)&(all.genome2.countOfMutationsOfType(m4)==0))& 
+      ((all.genome1.countOfMutationsOfType(m5)>0)|(all.genome2.countOfMutationsOfType(m5)>0))& 
+		((all.genome1.countOfMutationsOfType(m6)>0)|(all.genome2.countOfMutationsOfType(m6)>0))& 
+		((all.genome1.countOfMutationsOfType(m8)==0)& (all.genome2.countOfMutationsOfType(m8)==0))&
+	((all.genome1.countOfMutationsOfType(m9)==0)&
+	(all.genome2.countOfMutationsOfType(m9)==0));
+      
+   all[two_dr].color = "orange";
+   
+     
+      one_dr =  
+      ((all.genome1.countOfMutationsOfType(m4)==0)&(all.genome2.countOfMutationsOfType(m4)==0))& 
+      ((all.genome1.countOfMutationsOfType(m5)==0)&(all.genome2.countOfMutationsOfType(m5)==0))& 
+		((all.genome1.countOfMutationsOfType(m6)>0)|(all.genome2.countOfMutationsOfType(m6)>0))& 
+		((all.genome1.countOfMutationsOfType(m8)==0)& (all.genome2.countOfMutationsOfType(m8)==0))&
+		((all.genome1.countOfMutationsOfType(m9)==0)&(all.genome2.countOfMutationsOfType(m9)==0)); 
+   all[one_dr].color = "red";
+   
+      res_22 =  ((all.genome1.countOfMutationsOfType(m8) > 0)|(all.genome2.countOfMutationsOfType(m8)>0)) &
+((all.genome1.countOfMutationsOfType(m9)==0)&(all.genome2.countOfMutationsOfType(m9)==0));
+					
+   res_23 = ((all.genome1.countOfMutationsOfType(m8)==0)&(all.genome2.countOfMutationsOfType(m8)==0)) &
+((all.genome1.countOfMutationsOfType(m9)>0)|(all.genome2.countOfMutationsOfType(m9)>0));
+
+   res_both =((all.genome1.countOfMutationsOfType(m8)>0)|(all.genome2.countOfMutationsOfType(m8)>0)) &
+((all.genome1.countOfMutationsOfType(m9)>0)|(all.genome2.countOfMutationsOfType(m9)>0));
+	
+	all[res_22].color = "purple";
+	all[res_23].color = "blue";
+	all[res_both].color = "green";
+}
+
+
+
+//// EVALUATE SPATIAL INTERACTIONS BETWEEN INDIVIDUALS FOR OTHER FUNCTIONS.
+late() {
+	i1.evaluate(sim.subpopulations);
+	i2.evaluate(sim.subpopulations);
+}
+
+
+//// SURVIVAL RULES FOR THE SIMULATION BASED ON AGE AND RULES FOR MOVEMENT.
+late() {
+	all = sim.subpopulations.individuals;
+	is_male = all.sex=="M";
+	
+	// By default, we have non-overlapping generations
+	all[is_male].fitnessScaling = 0.0;
+	females = all[!is_male];
+	females.fitnessScaling = 0.0;
+	
+	// User may allow some females to survive
+	if (RATE_FEMALES_SURVIVE > 0.0) {
+		num_survive = round(RATE_FEMALES_SURVIVE*size(females));
+		fem_survive = sample(females, num_survive);
+		fem_survive.fitnessScaling = 1.0;
+	}
+	
+	surviving_inds = all[all.fitnessScaling > 0.0];
+	
+	// Surviving individuals move
+	for (ind in surviving_inds) {
+		if (REPRISING_BOUNDARIES) {
+			// Movement within reprising boundaries.
+			if (TWO_DIMENSIONAL) {
+				do position = ind.spatialPosition + rnorm(2, 0, FEMALE_SPEED);
+				while (!ind.subpopulation.pointInBounds(position));
+				ind.setSpatialPosition(position);
+			} else {
+				do position = ind.spatialPosition + rnorm(1, 0, FEMALE_SPEED);
+				while (!ind.subpopulation.pointInBounds(position));
+				ind.setSpatialPosition(position);
+			}
+		} else {
+			// Toroidal world movement.
+			if (TWO_DIMENSIONAL) {
+				ind.x = ind.x + rnorm(1, 0, FEMALE_SPEED);
+				ind.y = ind.y + rnorm(1, 0, FEMALE_SPEED);
+				ind.setSpatialPosition(p1.pointPeriodic(ind.spatialPosition));
+			} else {
+				ind.x = ind.x + rnorm(1, 0, FEMALE_SPEED);
+				ind.setSpatialPosition(p1.pointPeriodic(ind.spatialPosition));
+			}
+		}
+	}
+}
+
+
+//// START THE SIMULATION BY ADDING AN INITIAL WILD POPULATION.
+1 early() {
+
+//ends = c(NUM_GRNAS+1, NUM_GRNAS+2, NUM_GRNAS1+NUM_GRNAS +3, NUM_GRNAS1+NUM_GRNAS +4,NUM_GRNAS1+NUM_GRNAS2+NUM_GRNAS+6);
+    // Start with a population of wild type flies.
+    //add w1, w2 and w3
+    sim.addSubpop("p1", CAPACITY);
+    
+     for (x in 1:NUM_GRNAS) 
+        p1.individuals.genomes.addNewDrawnMutation(m1, x);//x = 0，1
+
+     for (y in (NUM_GRNAS+3):(NUM_GRNAS+NUM_GRNAS1+2)) 
+        p1.individuals.genomes.addNewDrawnMutation(m2, y);//x = 0，1        
+     for (z in (NUM_GRNAS+NUM_GRNAS1+5):( NUM_GRNAS+NUM_GRNAS1+NUM_GRNAS2+4)) 
+        p1.individuals.genomes.addNewDrawnMutation(m3, z);//x = 0，1  
+     all = sim.subpopulations.individuals; 
+	if (TWO_DIMENSIONAL) {
+		all.x = runif(CAPACITY);
+		all.y = runif(CAPACITY);
+	} else {
+		all.x = p1.pointUniform(CAPACITY);
+	}
+	sim.setValue("track_eq", NULL);
+	sim.setValue("timer", "start");      
+}
+
+
+					  
+
+					   
+					   
+
+
+
+
+//// PROGRAM OUTPUT AFTER DROP.
+
+9 late() {
+	all = sim.subpopulations.individuals;
+	defineConstant("equilibrium_wt_size", size(all));
+	print("equilibrium_wt_size"+equilibrium_wt_size);
+}
+
+//出现问题的原因：在early中all包括了卵！！
+10 early() {	
+	   all = sim.subpopulations.individuals;	
+    if (DROP_SIZE == 1){
+		num_x1=(all.x > 0) & (all.x <= 0.2);
+		num_x1_1 = all[num_x1];//subpop
+		num_x_1 = size(num_x1_1);
+    	sim.addSubpop("p2", asInteger(0.99*num_x_1/(1-0.99)));
+    	drop = p2.individuals;
+     for (x in 1:NUM_GRNAS) 
+        drop.genomes.addNewDrawnMutation(m4,x);
+     for (y in (NUM_GRNAS+3):(NUM_GRNAS+NUM_GRNAS1+2)) 
+        drop.genomes.addNewDrawnMutation(m5,y);   
+     for (z in (NUM_GRNAS+NUM_GRNAS1+5):(NUM_GRNAS+NUM_GRNAS1+NUM_GRNAS2+4)) 
+         drop.genomes.addNewDrawnMutation(m6,z);
+    		drop.genome2.addNewDrawnMutation(m3,z);
+    	drop.x = runif(asInteger(0.99*num_x_1/(1-0.99)), 0, DROP_RADIUS);	
+    	p1.takeMigrants(drop);
+		p2.removeSubpopulation();	
+  }
+  
+  
+		else{
+		all = sim.subpopulations.individuals;
+		num_x1=(all.x > 0) & (all.x <= 0.2);
+		num_x1_1 = all[num_x1];//subpop
+		num_x_1 = size(num_x1_1);
+
+		if (TWO_DIMENSIONAL){
+		sim.addSubpop("p2", asInteger(DROP_SIZE*size(all)/(1-DROP_SIZE)));
+		//print("drop_size"+asInteger(DROP_SIZE*size(all)/(1-DROP_SIZE)));
+		}
+		else{
+			sim.addSubpop("p2", asInteger(DROP_SIZE*num_x_1/(1-DROP_SIZE)));
+			}
+    	drop = p2.individuals;
+    // Now set the drop individuals to the correct genotypes:
+     for (x in 1:NUM_GRNAS) 
+        drop.genomes.addNewDrawnMutation(m4,x);
+     for (y in (NUM_GRNAS+3):(NUM_GRNAS+NUM_GRNAS1+2)) 
+        drop.genomes.addNewDrawnMutation(m5,y);   
+     for (z in (NUM_GRNAS+NUM_GRNAS1+5):(NUM_GRNAS+NUM_GRNAS1+NUM_GRNAS2+4)) 
+         drop.genomes.addNewDrawnMutation(m6,z);
+    		drop.genome2.addNewDrawnMutation(m3,z);
+    
+    	if (TWO_DIMENSIONAL) {
+		if (LEFT_EDGE_DROP) { //left-rectangle drop
+			drop.x = runif(DROP_SIZE, 0, DROP_RADIUS);
+			drop.y = runif(DROP_SIZE);
+		} else if (CIRCLE_DROP) { //default circle drop
+			drop.x = 0.5 + rnorm(DROP_SIZE, 0, DROP_RADIUS);
+			drop.y = 0.5 + rnorm(DROP_SIZE, 0, DROP_RADIUS);
+		} else if (UNIFORM_DROP) { //scattered uniformly
+			drop.x = runif(asInteger(DROP_SIZE*size(all)/(1-DROP_SIZE)));
+			drop.y = runif(asInteger(DROP_SIZE*size(all)/(1-DROP_SIZE)));
+		} else if (CORNER_DROP) {
+			for (ind in drop) {
+				ind.x = rnorm(1, 0, DROP_RADIUS);
+				ind.y = rnorm(1, 0, DROP_RADIUS);
+				ind.setSpatialPosition(p1.pointPeriodic(ind.spatialPosition));
+			}
+		}
+	}else{		
+	drop.x = runif(asInteger(DROP_SIZE*num_x_1/(1-DROP_SIZE)), 0, DROP_RADIUS);	
+	}
+	p1.takeMigrants(drop);
+	p2.removeSubpopulation();
+ }   
+    
+		// Only left-edge drops are possible in 1-D
+	// Move all the individuals from the drop into p1:
+	// Won't start tracking Green's coefficient until the number of
+	// wt alleles falls at least 20% from its equilibrium value.
+	sim.setValue("start_gc_tracking", F);
+}
+
+
+10:late() {
+    // Calculate rates that we are intersted in:
+   all = sim.subpopulations.individuals;
+	this_gen = sim.cycle-10;
+	pop_size = length(all);
+	//print("pop_size10:"+pop_size);
+	males = all[all.sex=="M"];
+	num_males = length(males);
+	females = all[all.sex=="F"];
+	num_females = length(females);
+	//count of chromosomes
+	num_y = num_males;
+	num_x = 2*num_females + num_males;
+	num_autosomal_chromosomes = 2*pop_size;
+
+	//allele counts
+	num_wt1 = sum(all.genomes.countOfMutationsOfType(m1)==NUM_GRNAS);
+	num_wt2 = sum(all.genomes.countOfMutationsOfType(m2)==NUM_GRNAS);
+	num_wt3 = sum(all.genomes.countOfMutationsOfType(m3)==NUM_GRNAS);
+	
+	num_dr1 = sum(all.genomes.countOfMutationsOfType(m4)==NUM_GRNAS);
+	num_dr2 = sum(all.genomes.countOfMutationsOfType(m5)==NUM_GRNAS);
+	num_dr3 = sum(all.genomes.countOfMutationsOfType(m6)==NUM_GRNAS);
+
+	num_r12 = sum(all.genomes.countOfMutationsOfType(m7)==NUM_GRNAS);
+	num_r22 = sum(all.genomes.countOfMutationsOfType(m8)==NUM_GRNAS);
+	num_r23 = sum(all.genomes.countOfMutationsOfType(m9)==NUM_GRNAS);
+	
+	rate_wt1=num_wt1/num_autosomal_chromosomes;
+	rate_wt2=num_wt2/num_autosomal_chromosomes;
+	rate_wt3=num_wt3/num_autosomal_chromosomes;
+	
+	rate_dr1=num_dr1/num_autosomal_chromosomes;
+	rate_dr2=num_dr2/num_autosomal_chromosomes;	
+	rate_dr3=num_dr3/num_autosomal_chromosomes;
+
+	num_has_drive1 = sum(all.countOfMutationsOfType(m4) >= NUM_GRNAS);
+	rate_has_drive1 = num_has_drive1/pop_size;
+	num_has_drive2 = sum(all.countOfMutationsOfType(m5) >= NUM_GRNAS);
+	rate_has_drive2= num_has_drive2/pop_size;
+	num_has_drive3 = sum(all.countOfMutationsOfType(m6) >= NUM_GRNAS);
+	rate_has_drive3 = num_has_drive3/pop_size;
+
+	num_wt3_homoz = sum(all.countOfMutationsOfType(m3)==2*NUM_GRNAS);
+	rate_wt3_homoz = num_wt3_homoz/pop_size;
+   rate_has_drive3 = num_has_drive3 / (size(all));
+    
+
+   
+ 	   this_gen=sim.cycle-10;
+	   //我需要：dr1，dr2和dr3
+	   if (TWO_DIMENSIONAL == F){
+
+	   target1=all[(all.countOfMutationsOfType(m4)!= 0)];
+	   target2=all[(all.countOfMutationsOfType(m5)!= 0)];
+	   target3=all[(all.countOfMutationsOfType(m6)!= 0)];
+	   target = all[(all.countOfMutationsOfType(m4)!= 0)|(all.countOfMutationsOfType(m5)!= 0)|(all.countOfMutationsOfType(m6)!= 0)];
+	   t1x=target1.x;//带有drive1基因的个体的横坐标（speed limit gRNA）
+	   t2x=target2.x;//带有drive2基因的个体的横坐标（cas9）
+	   t3x=target3.x;//带有drive3基因的个体的横坐标（Cargo）
+	   tx=target.x;
+	  // catn("generation:"+this_gen);
+	   n=0;
+	   do{//
+		   if(any((all.x > (n/50)) & (all.x <= ((n+1)/50)))){//整个区域中有个体存在时
+		   //有1
+				   if(any((tx <= (n+1)/50) & (tx > (n/50)))){//如果带有任意drive元件的个体还存在，则
+					   slice_x1= (tx >(n/50) ) & (tx <= ((n+1)/50));
+					   
+					   slice1=target[ slice_x1];
+					   num_x1=(all.x > (n/50)) & (all.x < ((n+1)/50));
+					   num_x1_1 = all[num_x1];//subpop
+					   num_x_1 = size(num_x1_1);//length(num_x1_1);//pop_size
+					   //print("num_x_1___catn:"+num_x_1);
+					   num_dr1_1 = sum(slice1.genomes.countOfMutationsOfType(m4));
+					   num_dr2_1 = sum(slice1.genomes.countOfMutationsOfType(m5));
+					   num_dr3_1 = sum(slice1.genomes.countOfMutationsOfType(m6));
+					   rate_dr1_1 = num_dr1_1/(2*num_x_1);				
+					   rate_dr2_1 = num_dr2_1/(2*num_x_1);				
+					   rate_dr3_1 = num_dr3_1/(2*num_x_1);
+					   
+					   drop_proportion = 1 - 50*num_x_1/equilibrium_wt_size;
+					   if (n == 1)
+					   	catn("OUT:" + "0" +","+size(all)+","+this_gen+","+DROP_SIZE+","+EMBRYO_RESISTANCE_RATE+ "," +n+","+rate_dr1_1 + ","+rate_dr2_1 + ","+rate_dr3_1 + ","+num_x_1+","+drop_proportion+",");
+					   else
+					   	catn("OUT:" +"0" +","+size(all)+","+this_gen+","+DROP_SIZE+","+EMBRYO_RESISTANCE_RATE+ "," +n+","+rate_dr1_1 + ","+rate_dr2_1 + ","+rate_dr3_1 + ","+num_x_1+","+drop_proportion+",");
+					   	n=n+1;
+				   }
+				   else{//如果该区域没有携带drive的个体		
+					   
+					    num_x1=(all.x > (n/50)) & (all.x < ((n+1)/50));
+					    num_x1_1 = all[num_x1];//subpop
+					    num_x_1 = length(num_x1_1);
+					    drop_proportion = 1- 50*num_x_1/equilibrium_wt_size;
+					    if (n == 1)
+					    	catn("OUT:" + "0"+","+size(all)+","+this_gen+","+DROP_SIZE+","+EMBRYO_RESISTANCE_RATE+ "," +n+","+0 + ","+0 + ","+0+","+num_x_1+","+drop_proportion+",");	
+					    else
+					      catn("OUT:"+"0"+","+size(all)+","+this_gen+","+DROP_SIZE+","+EMBRYO_RESISTANCE_RATE+ "," +n+","+0 + ","+0 + ","+0+","+num_x_1+","+drop_proportion+",");
+					      n=n+1;	
+					    
+				   }	  
+		  }
+		  else{//TOTALLY SUPPRESSED，没有任何个体	
+				
+				num_x1=(all.x > (n/50)) & (all.x < ((n+1)/50));
+				num_x1_1 = all[num_x1];//subpop
+				num_x_1 = length(num_x1_1);
+				drop_proportion = 1- 50*num_x_1/equilibrium_wt_size;
+					    if (n == 1)
+					    	catn("OUT:" + "0"+","+size(all)+","+this_gen+","+DROP_SIZE+","+EMBRYO_RESISTANCE_RATE+ "," +n+","+0 + ","+0 + ","+0+","+num_x_1+","+1+",");				    	
+					    else
+					      catn("OUT:" + "0"+","+size(all)+","+this_gen+","+DROP_SIZE+","+EMBRYO_RESISTANCE_RATE+ "," +n+","+0 + ","+0 + ","+0+","+num_x_1+","+1+",");	
+					      n=n+1;
+		  }
+      }
+     
+     
+      //try infinite circle if edge effect does influence a lot
+      
+      
+      while(n<50);
+
+      timer = sim.getValue("timer");
+
+}
+}
+
+
+
+//// If there was a drop, stop simulation after 1000 generations if not stopped already
+70 late() {
+	sim.simulationFinished();
+}
